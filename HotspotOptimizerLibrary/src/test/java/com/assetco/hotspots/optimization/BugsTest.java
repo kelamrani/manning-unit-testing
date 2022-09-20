@@ -1,19 +1,28 @@
 package com.assetco.hotspots.optimization;
 
-import com.assetco.search.results.Asset;
-import com.assetco.search.results.AssetVendor;
-import com.assetco.search.results.AssetVendorRelationshipLevel;
-import com.assetco.search.results.HotspotKey;
+import com.assetco.search.results.*;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 
 import static com.assetco.search.results.AssetVendorRelationshipLevel.Partner;
 import static com.assetco.search.results.HotspotKey.Showcase;
-import static org.junit.jupiter.api.Assertions.*;
 
 class BugsTest {
+
+    private SearchResults searchResults;
+
+    private SearchResultHotspotOptimizer searchResultHotspotOptimizer;
+
+    @BeforeEach
+    void setUp() {
+        searchResults = new SearchResults();
+        searchResultHotspotOptimizer = new SearchResultHotspotOptimizer();
+
+    }
 
     @Test
     void precedingPartnerWithLongTrailingAssetsDoesNotWin() {
@@ -32,13 +41,19 @@ class BugsTest {
         
     }
 
-    private void thenHotspotHasExactly(HotspotKey key, ArrayList<Asset> assetArrayList) {
+    private void thenHotspotHasExactly(HotspotKey key, ArrayList<Asset> assetArrayList){
+        Assertions.assertArrayEquals(searchResults.getHotspot(key).getMembers().toArray(), assetArrayList.toArray());
     }
 
-    private void thenHotspotDoesNotHave(HotspotKey key, Asset asset) {
+    private void thenHotspotDoesNotHave(HotspotKey key, Asset... forbiden)  {
+        for (var asset : forbiden) {
+            Assertions.assertFalse(searchResults.getHotspot(key).getMembers().contains(asset));
+        }
+
     }
 
-    private void whenOptimize() {
+    private void whenOptimize(){
+        searchResultHotspotOptimizer.optimize(searchResults);
     }
 
     private ArrayList<Asset> givenAssetInResultsWithVendor(int i, AssetVendor partnerVendor) {
@@ -50,9 +65,26 @@ class BugsTest {
         return result;
     }
 
-    private Asset givenAssetInResultsWithVendor(AssetVendor vendor) {     return null;   }
+    private Asset givenAssetInResultsWithVendor(AssetVendor vendor) {
+        Asset result = getAsset(vendor);
+        searchResults.addFound(result);
+        return result;
+    }
 
-    private AssetVendor makeVendor(AssetVendorRelationshipLevel relationshipLevel) {       return null;   }
+    private Asset getAsset(AssetVendor vendor) {
+        return new Asset("anything", "anything", null, null, getPurchaseInfo(), getPurchaseInfo(), new ArrayList<>(), vendor);
+    }
+
+    private AssetPurchaseInfo getPurchaseInfo() {
+        return new AssetPurchaseInfo(0, 0,
+                new Money(new BigDecimal("0")),
+                new Money(new BigDecimal("0")));
+    }
+
+    private AssetVendor makeVendor(AssetVendorRelationshipLevel relationshipLevel) {
+        return new AssetVendor("1","1", relationshipLevel, 1);
+//        return null;
+    }
 
 
 }
