@@ -26,7 +26,10 @@ class RelationshipBasedOptimizer {
         Iterator<Asset> iterator = searchResults.getFound().iterator();
         // don't affect a showcase built by an earlier rule
         var showcaseFull = searchResults.getHotspot(Showcase).getMembers().size() > 0;
-        var showcaseAssets = new ArrayList<Asset>();
+        List<Asset> showcaseAssets = new ArrayList<Asset>();
+        // We need to "remember" the assets per partner
+        var showcaseAssetsByPartner = new HashMap<AssetVendor, List<Asset>>();
+
         var partnerAssets = new ArrayList<Asset>();
         var goldAssets = new ArrayList<Asset>();
         var silverAssets = new ArrayList<Asset>();
@@ -44,6 +47,10 @@ class RelationshipBasedOptimizer {
 
             // remember this partner asset
             partnerAssets.add(asset);
+
+            // if we don't have a showcase, get one for this partner
+            if (showcaseAssets.size() == 0)
+                showcaseAssets = getShowcaseAssetsForPartner(showcaseAssetsByPartner, asset.getVendor());
 
             // too many assets in showcase - put in top picks instead...
             if (showcaseAssets.size() >= 5) {
@@ -79,8 +86,9 @@ class RelationshipBasedOptimizer {
                 if (showcaseAssets.size() != 0)
                     if (!Objects.equals(showcaseAssets.get(0).getVendor(), asset.getVendor()))
                         if (showcaseAssets.size() < 3)
-                            showcaseAssets.clear();
-
+//                            showcaseAssets.clear();
+                            // instead of clearing the current showcase, just switch to one for the new target partner
+                            showcaseAssets = getShowcaseAssetsForPartner(showcaseAssetsByPartner, asset.getVendor());
                 // add this asset to an empty showcase or showcase with same vendor in it
                 // if there's already another vendor, that vendor should take precedence!
                 if (showcaseAssets.size() == 0 || Objects.equals(showcaseAssets.get(0).getVendor(), asset.getVendor()))
@@ -124,4 +132,13 @@ class RelationshipBasedOptimizer {
         for (var asset : silverAssets)
             searchResults.getHotspot(Fold).addMember(asset);
     }
+
+    private List<Asset> getShowcaseAssetsForPartner(Map<AssetVendor, List<Asset>> map, AssetVendor vendor) {
+        if (map.containsKey(vendor))
+            return map.get(vendor);
+        var result = new ArrayList<Asset>();
+        map.put(vendor, result);
+        return result;
+    }
+
 }
